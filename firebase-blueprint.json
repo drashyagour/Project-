@@ -1,0 +1,98 @@
+{
+  "entities": {
+    "SquadMember": {
+      "title": "SquadMember",
+      "description": "Per-member live study status, daily study minutes, and latest mock score inside a Study Squad.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Authenticated Firebase user UID."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Member display name (1-30 characters)."
+        },
+        "todayMinutes": {
+          "type": "integer",
+          "description": "Total study minutes logged today (0-1440)."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Studying", "Idle"],
+          "description": "Live study indicator."
+        },
+        "latestMockScore": {
+          "type": "integer",
+          "description": "Latest NEET mock test score (0-720)."
+        },
+        "updatedAtMillis": {
+          "type": "integer",
+          "description": "Client update epoch milliseconds for display ordering."
+        }
+      },
+      "required": [
+        "uid",
+        "displayName",
+        "todayMinutes",
+        "status",
+        "latestMockScore",
+        "updatedAtMillis"
+      ]
+    },
+    "Squad": {
+      "title": "Squad",
+      "description": "A Study Squad / Friends room identified by a 6-character uppercase alphanumeric Room Code.",
+      "type": "object",
+      "properties": {
+        "roomCode": {
+          "type": "string",
+          "description": "6-character uppercase alphanumeric room code matching document ID."
+        },
+        "name": {
+          "type": "string",
+          "description": "Squad display name (2-40 characters)."
+        },
+        "creatorUid": {
+          "type": "string",
+          "description": "UID of the squad creator."
+        },
+        "memberUids": {
+          "type": "array",
+          "description": "Bounded list of member UIDs (max 25)."
+        },
+        "members": {
+          "type": "object",
+          "description": "Map of UID to SquadMember live status and study metrics."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp written via FieldValue.serverTimestamp()."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp written via FieldValue.serverTimestamp()."
+        }
+      },
+      "required": [
+        "roomCode",
+        "name",
+        "creatorUid",
+        "memberUids",
+        "members",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/squads/{roomCode}": {
+      "schema": {
+        "$ref": "#/entities/Squad"
+      },
+      "description": "Study Squad rooms keyed by 6-character Room Code containing bounded member profiles and live study metrics."
+    }
+  }
+}

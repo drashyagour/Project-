@@ -1,0 +1,27 @@
+<resources>
+    <string name="app_name">Aura</string>
+    <string name="developer_credit">Developer: Drashya</string>
+    <string name="nav_dashboard">Analytics</string>
+    <string name="nav_focus">Focus</string>
+    <string name="nav_mocks">Mocks</string>
+    <string name="nav_syllabus">Syllabus</string>
+    <string name="cd_settings">Open goals and settings</string>
+    <string name="cd_hero_banner">Aura study analytics banner</string>
+    <string name="cd_empty_illustration">Study textbook and rising analytics chart illustration</string>
+    <string name="cd_add_session">Log a past study session</string>
+    <string name="cd_add_mock">Log a new mock test</string>
+    <string name="cd_delete_item">Delete entry</string>
+    <string name="cd_increment_revision">Increment NCERT revision count</string>
+    <string name="dashboard_title">Aura</string>
+    <string name="dashboard_subtitle">Precision Study &amp; Score Analytics</string>
+    <string name="empty_analytics_title">Your NEET Analytics Start Here</string>
+    <string name="empty_analytics_body">Log a focused study block or an NTA 720-mark mock test to unlock your subject balance, accuracy velocity, and negative-mark diagnostics.</string>
+    <string name="action_start_focus">Start Focus Timer</string>
+    <string name="action_load_sample">Preview Sample Week</string>
+    <string name="action_save">Save</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="nav_squad">Study Squad</string>
+    <string name="cd_copy_room_code">Copy room code</string>
+    <string name="cd_leave_squad">Leave study squad</string>
+    <string name="cd_sign_out">Sign out of Google</string>
+</resources>

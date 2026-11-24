@@ -1,0 +1,135 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Reusable Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidRoomCode(code) {
+      return code is string && code.size() == 6 && code.matches('^[A-Z0-9]{6}$');
+    }
+
+    function isValidMemberStats(entry, expectedUid) {
+      return entry is map &&
+             entry.keys().hasAll(['uid', 'displayName', 'todayMinutes', 'status', 'latestMockScore', 'updatedAtMillis']) &&
+             entry.keys().hasOnly(['uid', 'displayName', 'todayMinutes', 'status', 'latestMockScore', 'updatedAtMillis']) &&
+             entry.uid is string &&
+             entry.uid == expectedUid &&
+             entry.uid.size() >= 1 && entry.uid.size() <= 128 &&
+             entry.displayName is string &&
+             entry.displayName.size() >= 1 && entry.displayName.size() <= 30 &&
+             entry.todayMinutes is int &&
+             entry.todayMinutes >= 0 && entry.todayMinutes <= 1440 &&
+             entry.status is string &&
+             entry.status in ['Studying', 'Idle'] &&
+             entry.latestMockScore is int &&
+             entry.latestMockScore >= 0 && entry.latestMockScore <= 720 &&
+             entry.updatedAtMillis is int &&
+             entry.updatedAtMillis >= 0;
+    }
+
+    function isValidSquad(data) {
+      return data.roomCode is string &&
+             isValidRoomCode(data.roomCode) &&
+             data.name is string &&
+             data.name.size() >= 2 && data.name.size() <= 40 &&
+             data.creatorUid is string &&
+             data.creatorUid.size() >= 1 && data.creatorUid.size() <= 128 &&
+             data.memberUids is list &&
+             data.memberUids.size() >= 1 && data.memberUids.size() <= 25 &&
+             data.memberUids[0] is string &&
+             data.members is map &&
+             data.members.size() >= 1 && data.members.size() <= 25 &&
+             data.createdAt is timestamp &&
+             data.createdAt <= request.time &&
+             data.updatedAt is timestamp &&
+             data.updatedAt <= request.time;
+    }
+
+    function isJoinAction(uid) {
+      return !(uid in existing().memberUids) &&
+             existing().memberUids.size() < 25 &&
+             incoming().memberUids.size() == existing().memberUids.size() + 1 &&
+             incoming().memberUids.hasAll(existing().memberUids) &&
+             uid in incoming().memberUids &&
+             incoming().diff(existing()).affectedKeys().hasOnly(['memberUids', 'members', 'updatedAt']) &&
+             incoming().members.diff(existing().members).affectedKeys().hasOnly([uid]) &&
+             isValidMemberStats(incoming().members[uid], uid);
+    }
+
+    function isSyncMemberAction(uid) {
+      return uid in existing().memberUids &&
+             incoming().memberUids == existing().memberUids &&
+             incoming().diff(existing()).affectedKeys().hasOnly(['members', 'updatedAt']) &&
+             incoming().members.diff(existing().members).affectedKeys().hasOnly([uid]) &&
+             isValidMemberStats(incoming().members[uid], uid);
+    }
+
+    function isLeaveAction(uid) {
+      return uid in existing().memberUids &&
+             existing().memberUids.size() > 1 &&
+             !(uid in incoming().memberUids) &&
+             incoming().memberUids.size() == existing().memberUids.size() - 1 &&
+             existing().memberUids.hasAll(incoming().memberUids) &&
+             incoming().diff(existing()).affectedKeys().hasOnly(['memberUids', 'members', 'updatedAt']) &&
+             incoming().members.diff(existing().members).affectedKeys().hasOnly([uid]) &&
+             !(uid in incoming().members);
+    }
+
+    function isRenameSquadAction(uid) {
+      return existing().creatorUid == uid &&
+             incoming().diff(existing()).affectedKeys().hasOnly(['name', 'updatedAt']);
+    }
+
+    // 3. Collection Rules: /squads/{roomCode}
+    match /squads/{roomCode} {
+      allow get: if isSignedIn() && isValidRoomCode(roomCode);
+
+      allow list: if isSignedIn() && request.auth.uid in resource.data.memberUids;
+
+      allow create: if isSignedIn() &&
+                       isValidRoomCode(roomCode) &&
+                       isValidSquad(incoming()) &&
+                       incoming().roomCode == roomCode &&
+                       incoming().creatorUid == request.auth.uid &&
+                       incoming().keys().hasAll(['roomCode', 'name', 'creatorUid', 'memberUids', 'members', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['roomCode', 'name', 'creatorUid', 'memberUids', 'members', 'createdAt', 'updatedAt']) &&
+                       incoming().memberUids.size() == 1 &&
+                       incoming().memberUids[0] == request.auth.uid &&
+                       incoming().members.keys().hasOnly([request.auth.uid]) &&
+                       isValidMemberStats(incoming().members[request.auth.uid], request.auth.uid);
+
+      allow update: if isSignedIn() &&
+                       isValidRoomCode(roomCode) &&
+                       isValidSquad(incoming()) &&
+                       incoming().roomCode == existing().roomCode &&
+                       incoming().creatorUid == existing().creatorUid &&
+                       incoming().createdAt == existing().createdAt &&
+                       (
+                         isJoinAction(request.auth.uid) ||
+                         isSyncMemberAction(request.auth.uid) ||
+                         isLeaveAction(request.auth.uid) ||
+                         isRenameSquadAction(request.auth.uid)
+                       );
+
+      allow delete: if isSignedIn() &&
+                       isValidRoomCode(roomCode) &&
+                       request.auth.uid in existing().memberUids &&
+                       existing().memberUids.size() == 1;
+    }
+  }
+}

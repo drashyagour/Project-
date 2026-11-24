@@ -1,0 +1,6 @@
+{
+  "name": "Aura",
+  "description": "Study hours, mock test analytics, and NCERT syllabus mastery tracker for NEET aspirants.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
